@@ -7,9 +7,10 @@
 // ---------------------------------------------------------------------------
 // `SHEET_ID()` resolves the bound Google Sheet ID for the current Apps Script
 // project at runtime. Resolution order (first match wins):
-//   1. Script Property `SHEET_ID`             (per-project override; preferred)
-//   2. SHEET_BINDINGS[<Apps Script project name>]   (map below)
-//   3. DEFAULT_SHEET_ID                       (final fallback)
+//   1. Script Property `SHEET_ID`           (per-project override; preferred)
+//   2. SHEET_BINDINGS[<Apps Script project ID>]   (map below, keyed by script
+//      ID returned by ScriptApp.getScriptId() — stable across renames)
+//   3. DEFAULT_SHEET_ID                     (final fallback)
 //
 // To bind a project to a different sheet WITHOUT a code change:
 //   Apps Script editor -> Project Settings -> Script Properties -> Add property
@@ -18,10 +19,15 @@
 // To add a new project<->sheet pairing in code, edit SHEET_BINDINGS below and
 // push to GitHub. The CI workflow will deploy it automatically.
 // ---------------------------------------------------------------------------
+//
+// Project ID reference (from Apps Script editor URL):
+//   TA_Manager       (new, default) -> 1Ud5AtdpwKwIQOd-NTJNFt7aBKB3nvkrqotBgy2CL8eJ-fr8L7x5-4WWG
+//   TA_Issue_Manager (legacy)       -> 1UwfZ0xVYk8FphNcax_Et8zuksiqzMqjQheh8WE33HZL2SzTqNbAUkuFy
+// ---------------------------------------------------------------------------
 const SHEET_BINDINGS = {
-    // "<Apps Script project name>": "<Spreadsheet ID>",
-    "TA_Manager":              "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU", // new project (default)
-    "Issue Addressal Portal":  "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU"  // legacy project
+    // "<Apps Script project ID>": "<Google Sheet ID>",
+    "1Ud5AtdpwKwIQOd-NTJNFt7aBKB3nvkrqotBgy2CL8eJ-fr8L7x5-4WWG": "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU", // TA_Manager (new, default)
+    "1UwfZ0xVYk8FphNcax_Et8zuksiqzMqjQheh8WE33HZL2SzTqNbAUkuFy": "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU"  // TA_Issue_Manager (legacy)
 };
 const DEFAULT_SHEET_ID = "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU";
 
@@ -33,11 +39,11 @@ function SHEET_ID() {
         const prop = PropertiesService.getScriptProperties().getProperty("SHEET_ID");
         if (prop) { _RESOLVED_SHEET_ID_ = prop; return prop; }
     } catch (e) { /* ignore */ }
-    // 2. Apps Script project name -> sheet map
+    // 2. Apps Script project ID -> sheet map (stable, no Drive scope needed)
     try {
-        const name = DriveApp.getFileById(ScriptApp.getScriptId()).getName();
-        if (SHEET_BINDINGS[name]) { _RESOLVED_SHEET_ID_ = SHEET_BINDINGS[name]; return _RESOLVED_SHEET_ID_; }
-    } catch (e) { /* DriveApp scope not yet authorized; fall through */ }
+        const scriptId = ScriptApp.getScriptId();
+        if (SHEET_BINDINGS[scriptId]) { _RESOLVED_SHEET_ID_ = SHEET_BINDINGS[scriptId]; return _RESOLVED_SHEET_ID_; }
+    } catch (e) { /* fall through */ }
     // 3. Default
     _RESOLVED_SHEET_ID_ = DEFAULT_SHEET_ID;
     return _RESOLVED_SHEET_ID_;
