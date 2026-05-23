@@ -1,0 +1,16 @@
+# clasp credentials (per-machine, contains OAuth tokens — NEVER commit)
+.clasprc.json
+# .clasp.json is committed so CI can read scriptId; safe — contains no secrets
+
+# Node / tooling
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local-only working folder
+temp/

@@ -1,0 +1,5 @@
+# Push only the manifest + src .gs/.html. Everything else is local-dev or docs.
+**/**
+!appsscript.json
+!src/**/*.gs
+!src/**/*.html
