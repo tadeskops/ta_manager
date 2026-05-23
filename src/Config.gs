@@ -243,7 +243,7 @@ function setupConfigSheet() {
 // ----- Internal: read CONFIG sheet -----
 function readConfigFromSheet_() {
     const result = fallbackConfig_();
-    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const ss = SpreadsheetApp.openById(SHEET_ID());
     const sheet = ss.getSheetByName(CONFIG_SHEET_NAME);
     if (!sheet) return result; // pure defaults
 

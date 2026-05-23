@@ -1,7 +1,47 @@
 // ===== CONFIG (Update these values) =====
 // NOTE: COMMITTEE_EMAILS and BUILDER_EMAIL are now defined in `config.gs`.
 //       Update committee / builder email IDs there.
-const SHEET_ID = "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU"; // Get from Sheets URL
+
+// ---------------------------------------------------------------------------
+// SPREADSHEET BINDING (multi-project aware)
+// ---------------------------------------------------------------------------
+// `SHEET_ID()` resolves the bound Google Sheet ID for the current Apps Script
+// project at runtime. Resolution order (first match wins):
+//   1. Script Property `SHEET_ID`             (per-project override; preferred)
+//   2. SHEET_BINDINGS[<Apps Script project name>]   (map below)
+//   3. DEFAULT_SHEET_ID                       (final fallback)
+//
+// To bind a project to a different sheet WITHOUT a code change:
+//   Apps Script editor -> Project Settings -> Script Properties -> Add property
+//     key = SHEET_ID    value = <google-sheet-id>
+//
+// To add a new project<->sheet pairing in code, edit SHEET_BINDINGS below and
+// push to GitHub. The CI workflow will deploy it automatically.
+// ---------------------------------------------------------------------------
+const SHEET_BINDINGS = {
+    // "<Apps Script project name>": "<Spreadsheet ID>",
+    "TA_Manager":              "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU", // new project (default)
+    "Issue Addressal Portal":  "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU"  // legacy project
+};
+const DEFAULT_SHEET_ID = "1dvLsUyog-6Rbv22WBQWClwZkabNBVYqF4ChNL1LL_vU";
+
+let _RESOLVED_SHEET_ID_ = null;
+function SHEET_ID() {
+    if (_RESOLVED_SHEET_ID_) return _RESOLVED_SHEET_ID_;
+    // 1. Script Property override (per-project, no redeploy needed)
+    try {
+        const prop = PropertiesService.getScriptProperties().getProperty("SHEET_ID");
+        if (prop) { _RESOLVED_SHEET_ID_ = prop; return prop; }
+    } catch (e) { /* ignore */ }
+    // 2. Apps Script project name -> sheet map
+    try {
+        const name = DriveApp.getFileById(ScriptApp.getScriptId()).getName();
+        if (SHEET_BINDINGS[name]) { _RESOLVED_SHEET_ID_ = SHEET_BINDINGS[name]; return _RESOLVED_SHEET_ID_; }
+    } catch (e) { /* DriveApp scope not yet authorized; fall through */ }
+    // 3. Default
+    _RESOLVED_SHEET_ID_ = DEFAULT_SHEET_ID;
+    return _RESOLVED_SHEET_ID_;
+}
 const SHEETS = {
     FORM_RESPONSES: "Form Responses 1",
     PENDING_QUEUE: "PENDING_REVIEW",  // Updated to match actual sheet name
@@ -99,11 +139,12 @@ function newRow_(width) { return new Array(width).fill(""); }
 
 // Get Spreadsheet with error handling
 function getSpreadsheet() {
+    const id = SHEET_ID();
     try {
-        return SpreadsheetApp.openById(SHEET_ID);
+        return SpreadsheetApp.openById(id);
     } catch (error) {
         Logger.log("Error opening spreadsheet: " + error.toString());
-        throw new Error("Cannot access spreadsheet with ID: " + SHEET_ID);
+        throw new Error("Cannot access spreadsheet with ID: " + id);
     }
 }
 

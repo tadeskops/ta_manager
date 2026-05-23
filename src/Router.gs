@@ -108,7 +108,7 @@ function api_getLogoUrl() {
 
 function getLogoUrl_() {
     try {
-        const ss = SpreadsheetApp.openById(SHEET_ID);
+        const ss = SpreadsheetApp.openById(SHEET_ID());
         const sheet = ss.getSheetByName(CONFIG_SHEET_NAME);
         if (!sheet) return "";
         const values = sheet.getDataRange().getValues();
