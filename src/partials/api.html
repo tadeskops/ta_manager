@@ -1,0 +1,93 @@
+<script>
+// Inlined for Apps Script HtmlService via `<?!= include('src/partials/api') ?>`.
+// Local-dev pages also load assets/js/api.js via <script src>; whichever
+// runs first wins, and the other is a harmless no-op (file existence vs 404).
+const API = {
+    ENDPOINT: "https://script.google.com/macros/s/AKfycbzfqTrf8fR-cc1ESy3qY13lxc8e0_K4-DeGgRkc-uK22D-NxVvab2V4Gu6Ac-vw9L-Ixw/exec",
+
+    get USES_APPS_SCRIPT() {
+        return typeof google !== "undefined" &&
+               typeof google.script !== "undefined" &&
+               typeof google.script.run !== "undefined";
+    },
+
+    _user: null,
+
+    setEndpoint(url) { this.ENDPOINT = url; },
+
+    async whoAmI() {
+        if (this._user) return this._user;
+        if (typeof window !== "undefined" && window.IRP_USER && window.IRP_USER.email) {
+            this._user = { email: window.IRP_USER.email, role: window.IRP_USER.role };
+            return this._user;
+        }
+        if (this.USES_APPS_SCRIPT) {
+            this._user = await new Promise((resolve, reject) => {
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).api_whoAmI();
+            });
+            return this._user;
+        }
+        this._user = { email: "", role: "UNKNOWN" };
+        return this._user;
+    },
+
+    async call(action, data = {}) {
+        const payload = data || {};
+        let result;
+        if (this.USES_APPS_SCRIPT) {
+            result = await new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(err => reject(new Error(err && err.message ? err.message : String(err))))
+                    .api_call(action, payload);
+            });
+        } else {
+            const body = Object.assign({ action: action }, payload);
+            const response = await fetch(this.ENDPOINT, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            result = await response.json();
+        }
+        if (!result || result.success === false) {
+            const msg = (result && result.error) || "Unknown API error";
+            console.error("API Error:", { action, payload, error: msg });
+            throw new Error(msg);
+        }
+        return ("data" in result) ? result.data : result;
+    },
+
+    getPendingIssues()        { return this.call("getPendingIssues"); },
+    approveIssue(ticketId)    { return this.call("approveIssue", { ticketId }); },
+    rejectIssue(t, r)         { return this.call("rejectIssue", { ticketId: t, reason: r }); },
+    getLiveIssues(f = "ALL")  { return this.call("getLiveIssues", { filterOption: f }); },
+    updateBuilderStatus(t, s, c = "", v = "", d = null) {
+        return this.call("updateBuilderStatus", { ticketId: t, status: s, comment: c, vendor: v, closureDate: d });
+    },
+    closeIssue(t, r)          { return this.call("closeIssue", { ticketId: t, reason: r }); },
+    reopenIssue(t, r)         { return this.call("reopenIssue", { ticketId: t, reason: r }); },
+    getDashboardMetrics()     { return this.call("getDashboardMetrics"); },
+    getFormResponses()        { return this.call("getFormResponses"); },
+    getIssuesWithStatus()     { return this.call("getIssuesWithStatus"); },
+    generateTicketId()        { return this.call("generateTicketId"); },
+    approveIssueWithTicketId(o, n) { return this.call("approveIssueWithTicketId", { originalTicketId: o, newTicketId: n }); },
+    syncFormResponses()       { return this.call("syncFormResponses"); },
+    submitIssue(payload)      { return this.call("submitIssue", payload || {}); },
+    getCategoryMaster()       { return this.call("getCategoryMaster"); },
+    getClientConfig()         { return this.call("getClientConfig"); },
+
+    signOut() {
+        const back = (typeof window !== "undefined" && window.IRP_WEBAPP_URL) || "/";
+        const url  = "https://accounts.google.com/Logout?continue=" +
+                     encodeURIComponent("https://appengine.google.com/_ah/logout?continue=" + back);
+        if (typeof window !== "undefined") window.open(url, "_top");
+    }
+};
+
+if (typeof window !== "undefined" && !window.IRP_USER) {
+    window.IRP_USER = { email: "", role: "UNKNOWN" };
+}
+</script>
