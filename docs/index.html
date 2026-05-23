@@ -5,103 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Issue Addressal Portal — The Address</title>
     <meta name="description" content="Issue Addressal Portal for The Address residents and committee" />
-    <!-- Single source of truth for the live web app URL. Update this one line
-         whenever Apps Script issues a new deployment ID. -->
-    <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbx7SIr04CSet_D2Zlb12LngDR7tCbef41VJUVG-B4DRfh69SRBWk6sv_agUUMKiYVbA/exec" />
-    <link rel="canonical" href="https://script.google.com/macros/s/AKfycbx7SIr04CSet_D2Zlb12LngDR7tCbef41VJUVG-B4DRfh69SRBWk6sv_agUUMKiYVbA/exec" />
+    <script>
+        // ---------- Single source of truth for the deployed web app ----
+        // Update when the Apps Script deployment ID changes.
+        window.IRP_EXEC_URL =
+            "https://script.google.com/macros/s/AKfycbwTIdsBJUBVZZJxMVdO1i5FZmxq8_0FXNrDJHjJQkwfGSnajsYygj3arKs5E8KPJZZ1/exec";
+        // ---------------------------------------------------------------
+    </script>
     <style>
         :root {
             --bg-grad-from: #0f172a;
             --bg-grad-to:   #1e293b;
             --accent:       #f59e0b;
+            --accent-2:     #d4af37;
             --text:         #f1f5f9;
             --muted:        #94a3b8;
+            --border:       rgba(255, 255, 255, 0.08);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body {
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                         Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+                         Oxygen, Ubuntu, Cantarell, "Open Sans", sans-serif;
         }
         body {
             background: linear-gradient(135deg, var(--bg-grad-from), var(--bg-grad-to));
             color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             padding: 24px;
         }
         .card {
-            max-width: 480px;
-            width: 100%;
+            max-width: 520px; width: 100%;
             background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
             padding: 40px 32px;
-            text-align: center;
             backdrop-filter: blur(12px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
+        .header { text-align: center; margin-bottom: 28px; }
+        .logo {
+            width: 56px; height: 56px; margin: 0 auto 14px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: 0.05em;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
         }
+        h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .subtitle { color: var(--muted); font-size: 13px; }
         .accent { color: var(--accent); }
-        p {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 24px;
+
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 14px 18px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px; font-weight: 600;
+            text-decoration: none; cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+            margin-bottom: 12px;
         }
-        .spinner {
-            width: 36px;
-            height: 36px;
-            margin: 0 auto 20px;
-            border: 3px solid rgba(245, 158, 11, 0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #ea580c);
+            color: #0f172a; border-color: transparent;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        a.fallback {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 10px 20px;
-            background: var(--accent);
-            color: #0f172a;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: transform 0.15s ease;
+        .btn-secondary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.3);
         }
-        a.fallback:hover { transform: translateY(-1px); }
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+        }
+
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 22px 0 14px;
+            color: var(--muted); font-size: 11px; letter-spacing: 0.1em;
+        }
+        .divider::before, .divider::after {
+            content: ""; flex: 1; height: 1px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+        }
+        .section-label {
+            font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--muted); margin: 4px 0 10px; text-align: center;
+        }
         .footnote {
-            margin-top: 24px;
-            font-size: 11px;
-            color: var(--muted);
-            opacity: 0.6;
+            margin-top: 22px; text-align: center;
+            font-size: 11px; color: var(--muted); opacity: 0.7; line-height: 1.6;
         }
     </style>
 </head>
 <body>
-    <main class="card" role="status" aria-live="polite">
-        <div class="spinner" aria-hidden="true"></div>
-        <h1>The Address — <span class="accent">IRP</span></h1>
-        <p>Redirecting you to the Issue Addressal Portal…</p>
-        <a class="fallback" href="https://script.google.com/macros/s/AKfycbx7SIr04CSet_D2Zlb12LngDR7tCbef41VJUVG-B4DRfh69SRBWk6sv_agUUMKiYVbA/exec">Continue manually</a>
-        <p class="footnote">If the page does not load automatically, click the button above.</p>
+    <main class="card">
+        <div class="header">
+            <div class="logo">TA</div>
+            <h1>The Address — <span class="accent">IRP</span></h1>
+            <p class="subtitle">Issue Addressal Portal</p>
+        </div>
+
+        <p class="section-label">For Residents</p>
+        <a class="btn btn-primary" id="submitBtn" href="#">
+            Submit a New Issue
+        </a>
+        <a class="btn btn-secondary" id="viewBtn" href="#">
+            View Submitted Issues
+        </a>
+
+        <div class="divider">STAFF ACCESS</div>
+
+        <p class="section-label">Committee / Builder / Tech — Google sign-in</p>
+        <a class="btn btn-ghost" id="staffBtn" href="#">
+            Sign in to Staff Dashboard
+        </a>
+
+        <p class="footnote">
+            Residents can submit and track issues without signing in.<br />
+            Staff members must sign in with an authorised Google account.
+        </p>
     </main>
+
     <script>
-        // Belt-and-braces: redirect via JS in case the meta refresh is blocked.
-        // Preserves any query string / hash so deep links like ?page=admin still work.
         (function () {
-            var target = "https://script.google.com/macros/s/AKfycbx7SIr04CSet_D2Zlb12LngDR7tCbef41VJUVG-B4DRfh69SRBWk6sv_agUUMKiYVbA/exec";
-            if (window.location.search) {
-                target += target.indexOf("?") === -1 ? window.location.search : ("&" + window.location.search.slice(1));
-            }
-            if (window.location.hash) target += window.location.hash;
-            window.location.replace(target);
+            var exec = window.IRP_EXEC_URL;
+            // Resident-facing in-portal pages.
+            document.getElementById("submitBtn").href = exec + "?page=submit";
+            document.getElementById("viewBtn").href   = exec + "?page=submitted";
+            // Staff sign-in → role-based landing inside /exec.
+            document.getElementById("staffBtn").href  = exec;
         })();
     </script>
 </body>

@@ -15,7 +15,7 @@
 const API = {
     // Used only by the fetch fallback (local dev). Production HtmlService
     // ignores this — identity comes from the Google session, not from the URL.
-    ENDPOINT: "https://script.google.com/macros/s/AKfycbzfqTrf8fR-cc1ESy3qY13lxc8e0_K4-DeGgRkc-uK22D-NxVvab2V4Gu6Ac-vw9L-Ixw/exec",
+    ENDPOINT: "https://script.google.com/macros/s/AKfycbwTIdsBJUBVZZJxMVdO1i5FZmxq8_0FXNrDJHjJQkwfGSnajsYygj3arKs5E8KPJZZ1/exec",
 
     // Detect environment once.
     get USES_APPS_SCRIPT() {
