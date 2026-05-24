@@ -155,17 +155,15 @@
     <script src="../../assets/js/api.js"></script>
     <script>
         // === Auth (server-trusted via Google sign-in) ===
+        // Anonymous (UNKNOWN) users are allowed to view this page; the server
+        // enforces what they can see. Only redirect on a hard whoAmI failure.
         (async function ensureAuthorized() {
             try {
                 const u = await API.whoAmI();
-                window.IRP_USER = u;
-                if (!u.email || u.role === 'UNKNOWN') {
-                    location.href = 'index.html';
-                    return;
-                }
+                window.IRP_USER = u || { email: '', role: 'UNKNOWN' };
             } catch (e) {
                 console.error('Auth check failed:', e);
-                location.href = 'index.html';
+                window.IRP_USER = { email: '', role: 'UNKNOWN' };
             }
         })();
 

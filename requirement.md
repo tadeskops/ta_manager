@@ -10,12 +10,13 @@
 | Aspect | Value |
 |---|---|
 | Purpose | Track resident-reported issues from intake → committee approval → builder execution → closure |
-| Hosting | Single Apps Script web app (HtmlService) |
-| Storage | One bound Google Sheet (7 tabs incl. `CONFIG`) |
-| Identity | Google account sign-in (`Session.getActiveUser()`) |
-| Authorization | Role lookup against the `CONFIG` sheet |
+| Hosting | Apps Script web app (HtmlService) — two deployments: PUBLIC (anonymous) for residents, STAFF (signed-in) for committee/builder |
+| Storage | One bound Google Sheet (8 tabs incl. `CONFIG`) |
+| Landing | Static page on GitHub Pages (`docs/index.html`) routes users to the correct deployment |
+| Identity | Google account sign-in for staff (`Session.getActiveUser()`); residents are anonymous |
+| Authorization | Role lookup against the `CONFIG` sheet; anonymous → `UNKNOWN` (resident-equivalent public surface) |
 | Cost | Free (Google Sheets + Apps Script quotas only) |
-| External services | None — no Firebase, no OAuth Client ID, no GitHub Pages |
+| External services | GitHub Pages (static landing only). No Firebase, no OAuth Client ID. |
 
 ---
 
@@ -23,32 +24,46 @@
 
 | Role | How identified | Capabilities |
 |---|---|---|
-| Resident | Submits Google Form (no sign-in to portal) | Submit issues only |
+| Resident (anonymous) | Hits the PUBLIC deployment without signing in — `Session.getActiveUser().getEmail()` is empty, role resolves to `UNKNOWN` | Submit issues via in-portal webpage; view read-only submitted-issues list |
+| Resident (signed-in) | Any signed-in Google user not listed in `CONFIG` — role `RESIDENT` | Same as anonymous (sign-in is optional, never required) |
 | Technical Committee | Google email listed in `CONFIG.COMMITTEE_EMAILS` | Approve/reject pending, view all dashboards, close/reopen, delete, full read |
 | Builder | Google email matching `CONFIG.BUILDER_EMAIL` | Read assigned issues, update builder status / comment / vendor, close/reopen |
-| Unknown | Any signed-in Google user not in CONFIG | Denied — sees a "not authorized" landing page |
 
+> Residents are **never asked to sign in**. The PUBLIC deployment is
+> configured `access: ANYONE_ANONYMOUS`, `executeAs: USER_DEPLOYING`.
+> Staff (committee / builder) sign in via the STAFF deployment
+> (`access: ANYONE`, `executeAs: USER_ACCESSING`).
 > Committee membership and builder email are runtime-editable via the `CONFIG` sheet.
 > No code changes required to onboard or remove a member.
 
 ---
 
-## 3. Authentication & Authorization (Google Auth — MANDATORY)
+## 3. Authentication & Authorization
 
-### 3.1 Authentication
-- Web app deployed with `executeAs: USER_ACCESSING`, `access: ANYONE` (any Google account).
-- Google forces sign-in before any request reaches the script.
-- Server reads identity via `Session.getActiveUser().getEmail()` — **must not** be supplied by the client.
-- Browser must never send `userEmail` in a payload; if present, it is ignored.
+### 3.1 Two deployments
+- **PUBLIC** (`access: ANYONE_ANONYMOUS`, `executeAs: USER_DEPLOYING`)
+  - Serves only `submit` and `submitted` pages.
+  - No Google sign-in. `Session.getActiveUser().getEmail()` is empty.
+  - `getUserRole("")` returns `UNKNOWN`; api_call whitelists
+    `submitIssue`, `getCategoryMaster`, `getIssuesWithStatus`,
+    `validateUserAccess`, `getClientConfig`.
+- **STAFF** (`access: ANYONE`, `executeAs: USER_ACCESSING`)
+  - Google forces sign-in before any request reaches the script.
+  - `Session.getActiveUser().getEmail()` returns the verified signed-in
+    address — the client can never spoof it.
 
 ### 3.2 Authorization
-- `getUserRole(email)` (see [config.gs](config.gs)) resolves `COMMITTEE | BUILDER | UNKNOWN`.
-- Per-action allow-list enforced server-side in `isActionAllowed_(action, role)` (see [Router.gs](Router.gs)).
-- `UNKNOWN` is denied on every action and is shown an access-denied landing page.
+- `getUserRole(email)` resolves `COMMITTEE | BUILDER | RESIDENT | UNKNOWN`.
+- Per-action allow-list enforced server-side in `isActionAllowed_(action, role)`.
+- `UNKNOWN` (anonymous) is limited to the resident-facing whitelist above.
+- Staff dashboards (`committee`, `builder`, `admin`) are unreachable on the
+  PUBLIC deployment because the role can never escalate beyond `UNKNOWN`
+  there.
 
 ### 3.3 Sign-out
 - No programmatic sign-out for an Apps Script web app session.
-- Logout button triggers `API.signOut()` which redirects through Google's account-chooser.
+- Logout button triggers `API.signOut()` which redirects through Google's
+  account-chooser.
 
 ### 3.4 What is forbidden
 - Client-typed email + role form (removed).
@@ -127,15 +142,18 @@ Cached 5 min in `CacheService`; `clearConfigCache()` forces refresh.
 
 ## 6. Web App URL Routes (`doGet` parameters)
 
-| URL | Behaviour |
-|---|---|
-| `/exec` | Role-based landing — committee → committee dashboard, builder → builder dashboard, unknown → denied page |
-| `/exec?page=committee` | Force committee dashboard (committee only) |
-| `/exec?page=builder` | Force builder dashboard (builder or committee) |
-| `/exec?page=admin` | Admin analytics (committee only) |
-| `/exec?page=submitted` | Read-only submitted-issues table (committee or builder) |
+| URL | Deployment | Behaviour |
+|---|---|---|
+| `/exec` (PUBLIC) | anonymous | Resident landing → `submit` page |
+| `/exec?page=submit` (PUBLIC) | anonymous | In-portal issue submission form (no sign-in) |
+| `/exec?page=submitted` (PUBLIC) | anonymous | Read-only submitted-issues table |
+| `/exec` (STAFF) | signed-in | Role-based landing — committee → committee dashboard, builder → builder dashboard, others → denied |
+| `/exec?page=committee` (STAFF) | signed-in | Force committee dashboard (committee only) |
+| `/exec?page=builder` (STAFF) | signed-in | Force builder dashboard (builder or committee) |
+| `/exec?page=admin` (STAFF) | signed-in | Admin analytics (committee only) |
 
-Unauthorized requests for a page never reach the HTML — `Router.gs` substitutes the denied page.
+Unauthorized requests for a page never reach the HTML — `Router.gs`
+substitutes the denied page.
 
 ---
 

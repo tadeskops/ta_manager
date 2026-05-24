@@ -24,12 +24,15 @@
  * ============================================================================
  */
 
+// Resident-facing public pages are reachable WITHOUT sign-in (UNKNOWN role)
+// so that a deployment configured as ANYONE_ANONYMOUS can serve them. Staff
+// dashboards still require an authenticated role.
 const PAGE_MAP = {
     committee: { file: "src/pages/committee-dashboard", roles: ["COMMITTEE"] },
     builder:   { file: "src/pages/builder-dashboard",   roles: ["BUILDER", "COMMITTEE"], feature: "FEATURE_BUILDER_DASHBOARD" },
     admin:     { file: "src/pages/admin-dashboard",     roles: ["COMMITTEE"],            feature: "FEATURE_ADMIN_DASHBOARD" },
-    submitted: { file: "src/pages/submitted-issues",    roles: ["COMMITTEE", "BUILDER", "RESIDENT"], feature: "FEATURE_SUBMITTED_PAGE" },
-    submit:    { file: "src/pages/submit-issue",        roles: ["RESIDENT", "COMMITTEE", "BUILDER"], feature: "FEATURE_IN_PORTAL_SUBMIT" },
+    submitted: { file: "src/pages/submitted-issues",    roles: ["COMMITTEE", "BUILDER", "RESIDENT", "UNKNOWN"], feature: "FEATURE_SUBMITTED_PAGE" },
+    submit:    { file: "src/pages/submit-issue",        roles: ["RESIDENT", "COMMITTEE", "BUILDER", "UNKNOWN"], feature: "FEATURE_IN_PORTAL_SUBMIT" },
     denied:    { file: "src/pages/index",               roles: ["COMMITTEE", "BUILDER", "RESIDENT", "UNKNOWN"] }
 };
 
@@ -50,7 +53,9 @@ function doGet(e) {
         key = getFeatureFlag("FEATURE_IN_PORTAL_SUBMIT") ? "submit"
             : (getFeatureFlag("FEATURE_SUBMITTED_PAGE") ? "submitted" : "denied");
     } else {
-        key = "denied";
+        // Anonymous (UNKNOWN) users land on the public submit page by default.
+        // They can also explicitly request `?page=submitted` (handled above).
+        key = getFeatureFlag("FEATURE_IN_PORTAL_SUBMIT") ? "submit" : "denied";
     }
 
     const target = PAGE_MAP[key];
@@ -60,8 +65,8 @@ function doGet(e) {
         return renderDenied_(email, role);
     }
 
-    // Authorization check
-    if (role === "UNKNOWN" || target.roles.indexOf(role) === -1) {
+    // Authorization check — role must be in the page's allow-list.
+    if (target.roles.indexOf(role) === -1) {
         return renderDenied_(email, role);
     }
 
@@ -146,9 +151,9 @@ function api_call(action, payload) {
     payload = payload || {};
     const email = (Session.getActiveUser().getEmail() || "").trim();
     const role  = getUserRole(email);
-    if (role === "UNKNOWN") {
-        return { success: false, error: "Unauthorized: " + (email || "no email") };
-    }    if (!isActionAllowed_(action, role)) {
+    // Anonymous (UNKNOWN) callers are allowed only for the resident-facing
+    // whitelist below; everything else is gated by isActionAllowed_.
+    if (!isActionAllowed_(action, role)) {
         return { success: false, error: "Forbidden for role " + role + ": " + action };
     }
     try {
@@ -198,8 +203,14 @@ function isActionAllowed_(action, role) {
         "submitIssue", "getCategoryMaster", "getIssuesWithStatus",
         "validateUserAccess", "getClientConfig"
     ];
+    // Anonymous (no Google sign-in) — strict, read+create only on public surface.
+    const ANON_ALLOWED = [
+        "submitIssue", "getCategoryMaster", "getClientConfig",
+        "getIssuesWithStatus", "validateUserAccess"
+    ];
     if (role === "COMMITTEE") return true; // committee can do everything
     if (role === "BUILDER")   return BUILDER_ALLOWED.indexOf(action) !== -1;
     if (role === "RESIDENT")  return RESIDENT_ALLOWED.indexOf(action) !== -1;
+    if (role === "UNKNOWN")   return ANON_ALLOWED.indexOf(action) !== -1;
     return false;
 }
