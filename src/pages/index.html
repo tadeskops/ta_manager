@@ -26,18 +26,24 @@
         .gold-accent {
             color: #d4af37;
         }
+        .logo-tile {
+            width: 64px; height: 64px;
+            margin: 0 auto;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f59e0b, #d4af37);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: 0.05em;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 min-h-screen flex items-center justify-center px-4">
     <div class="premium-card rounded-2xl p-10 w-full max-w-md border border-slate-700">
         <!-- Logo Section -->
         <div class="text-center mb-8">
-            <!-- Logo Only (Compact) -->
             <div class="mb-6">
-                <img src="../../assets/images/TaLogo.png" alt="The Address" class="h-16 mx-auto drop-shadow-lg">
+                <div class="logo-tile">TA</div>
             </div>
-            <!-- Alternative: Logo with Text (Uncomment to use) -->
-            <!-- <div class="mb-6"><img src="../../assets/images/TaLogoName.png" alt="The Address" class="h-20 mx-auto drop-shadow-lg"></div> -->
             <h2 class="text-xl font-bold text-slate-100 mb-2">Issue Addressal Portal</h2>
         </div>
         
@@ -46,8 +52,8 @@
             <i class="fas fa-pen-to-square mr-2"></i>Submit New Issue
         </button>
 
-        <!-- View Submitted Issues Button (Primary Action) -->
-        <button onclick="goSubmitted()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-4 rounded-lg transition-all border border-blue-400/30 shadow-lg hover:shadow-xl text-sm uppercase tracking-wider mb-6">
+        <!-- View Submitted Issues (shown once role is resolved) -->
+        <button id="viewBtn" onclick="goSubmitted()" class="hidden w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-4 rounded-lg transition-all border border-blue-400/30 shadow-lg hover:shadow-xl text-sm uppercase tracking-wider mb-6">
             <i class="fas fa-eye mr-2"></i>View Submitted Issues (Read Only)
         </button>
 
@@ -96,9 +102,14 @@
             const label = document.getElementById('primaryLabel');
             const switchBtn = document.getElementById('switchAcct');
             const submitBtn = document.getElementById('submitBtn');
+            const viewBtn   = document.getElementById('viewBtn');
+            // Resident-facing CTAs are always available (they work for signed-in
+            // and anonymous visitors alike) so the page is never a dead-end.
+            if (submitBtn) submitBtn.classList.remove('hidden');
+            if (viewBtn)   viewBtn.classList.remove('hidden');
             try {
                 const u = await API.whoAmI();
-                window.IRP_USER = u;
+                window.IRP_USER = u || { email: '', role: 'UNKNOWN' };
                 if (u.role === 'COMMITTEE') {
                     statusEl.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i>Signed in as <b>' + u.email + '</b> (Technical Committee)';
                     label.textContent = 'Open Committee Dashboard';
@@ -111,21 +122,13 @@
                     switchBtn.classList.remove('hidden');
                 } else if (u.role === 'RESIDENT') {
                     statusEl.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i>Signed in as <b>' + u.email + '</b> (Resident)';
-                    // Feature flag gate \u2014 hide submit CTA if disabled.
-                    let canSubmit = true;
-                    try {
-                        const cc = await API.getClientConfig();
-                        window.IRP_CLIENT_CONFIG = cc || {};
-                        canSubmit = !((cc && cc.features && cc.features.FEATURE_IN_PORTAL_SUBMIT) === false);
-                    } catch (e) { /* default to enabled */ }
-                    if (canSubmit) submitBtn.classList.remove('hidden');
                     switchBtn.classList.remove('hidden');
                 } else if (u.email) {
-                    statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-amber-400 mr-2"></i>' +
-                        '<b>' + u.email + '</b> is not authorized. Contact the committee to be added to the CONFIG list, then reload.';
+                    statusEl.innerHTML = '<i class="fas fa-info-circle text-amber-400 mr-2"></i>' +
+                        '<b>' + u.email + '</b> is not on the staff list. You can still submit and view issues as a resident.';
                     switchBtn.classList.remove('hidden');
                 } else {
-                    statusEl.innerHTML = '<i class="fab fa-google mr-2 text-amber-400"></i>Please open this app from the deployed Apps Script URL and sign in with Google.';
+                    statusEl.innerHTML = '<i class="fas fa-user mr-2 text-slate-400"></i>Browsing anonymously — submit or view issues without signing in. Staff: sign in with Google to access dashboards.';
                 }
             } catch (e) {
                 console.error(e);
