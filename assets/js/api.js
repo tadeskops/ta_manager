@@ -15,7 +15,11 @@
 const API = {
     // Used only by the fetch fallback (local dev). Production HtmlService
     // ignores this — identity comes from the Google session, not from the URL.
-    ENDPOINT: "https://script.google.com/macros/s/AKfycbwTIdsBJUBVZZJxMVdO1i5FZmxq8_0FXNrDJHjJQkwfGSnajsYygj3arKs5E8KPJZZ1/exec",
+    // Single source of truth is docs/config.js (sets window.IRP_EXEC_URL).
+    // The literal below is just an offline fallback; you do NOT need to
+    // update it on every redeploy.
+    ENDPOINT: (typeof window !== "undefined" && window.IRP_EXEC_URL) ||
+              "https://script.google.com/macros/s/AKfycbx7SIr04CSet_D2Zlb12LngDR7tCbef41VJUVG-B4DRfh69SRBWk6sv_agUUMKiYVbA/exec",
 
     // Detect environment once.
     get USES_APPS_SCRIPT() {

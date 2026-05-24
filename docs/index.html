@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Issue Addressal Portal — The Address</title>
     <meta name="description" content="Issue Addressal Portal for The Address residents and committee" />
-    <script>
-        // ---------- Single source of truth for the deployed web app ----
-        // Update when the Apps Script deployment ID changes.
-        window.IRP_EXEC_URL =
-            "https://script.google.com/macros/s/AKfycbwTIdsBJUBVZZJxMVdO1i5FZmxq8_0FXNrDJHjJQkwfGSnajsYygj3arKs5E8KPJZZ1/exec";
-        // ---------------------------------------------------------------
-    </script>
+    <script src="config.js"></script>
     <style>
         :root {
             --bg-grad-from: #0f172a;
@@ -132,12 +126,13 @@
 
     <script>
         (function () {
-            var exec = window.IRP_EXEC_URL;
-            // Resident-facing in-portal pages.
-            document.getElementById("submitBtn").href = exec + "?page=submit";
-            document.getElementById("viewBtn").href   = exec + "?page=submitted";
-            // Staff sign-in → role-based landing inside /exec.
-            document.getElementById("staffBtn").href  = exec;
+            var pub = window.IRP_PUBLIC_URL;
+            var staff = window.IRP_STAFF_URL;
+            // Resident-facing pages — served by the PUBLIC (anonymous) deployment.
+            document.getElementById("submitBtn").href = pub + "?page=submit";
+            document.getElementById("viewBtn").href   = pub + "?page=submitted";
+            // Staff sign-in — STAFF deployment (Google auth wall).
+            document.getElementById("staffBtn").href  = staff;
         })();
     </script>
 </body>

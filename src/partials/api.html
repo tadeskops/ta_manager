@@ -3,7 +3,10 @@
 // Local-dev pages also load assets/js/api.js via <script src>; whichever
 // runs first wins, and the other is a harmless no-op (file existence vs 404).
 const API = {
-    ENDPOINT: "https://script.google.com/macros/s/AKfycbwTIdsBJUBVZZJxMVdO1i5FZmxq8_0FXNrDJHjJQkwfGSnajsYygj3arKs5E8KPJZZ1/exec",
+    // Auto-resolved at render time to the current deployment URL — NEVER
+    // hand-edit this. When you redeploy, the new URL flows through here
+    // automatically. (Local-dev callers use assets/js/api.js / docs/config.js.)
+    ENDPOINT: "<?= getWebAppUrl() ?>",
 
     get USES_APPS_SCRIPT() {
         return typeof google !== "undefined" &&
